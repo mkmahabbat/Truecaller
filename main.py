@@ -3,76 +3,85 @@ import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-# Constants
-BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+# ✅ Your Bot Token and API Key
+BOT_TOKEN = '7685067743:AAGWyNvmkWffyxQqGILIWRFgkPIwYAdnPEA'
 API_KEY = 'UVBOUb1397d66a0504dc280b01158ea9fc524'
 API_URL = 'https://api.apilayer.com/number_verification/validate?number='
 
-# Enable logging
+# Logging for debugging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# /start command
+# /start command handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📲 *Welcome to Mobile Number Info Bot!*\n\n"
-        "Just send any phone number with country code (e.g., +919999999999) and I will check it for you.",
+        "📲 *Welcome to Number Info Bot!*\n\n"
+        "Send any phone number with the country code (e.g., +919999999999) "
+        "and I’ll tell you details like country, location, carrier, and more.",
         parse_mode='Markdown'
     )
 
-# /help command
+# /help command handler
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "ℹ️ *Help Menu*\n\n"
-        "• Send a phone number (e.g., +14155552671)\n"
-        "• You’ll get country, carrier, line type, and more.\n\n"
-        "*Note:* Country code is mandatory.",
+        "ℹ️ *Help Guide*\n\n"
+        "• Send a phone number with the country code.\n"
+        "• Example: +14155552671 or +919999999999\n"
+        "• I’ll respond with full details.\n\n"
+        "*Note:* Country code (like +91, +1) is required.",
         parse_mode='Markdown'
     )
 
-# Main logic for number checking
+# Function to check number details
 async def check_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
     number = update.message.text.strip()
 
-    # Validation
+    # Basic validation
     if not number.startswith('+') or not number[1:].isdigit() or len(number) < 8:
         await update.message.reply_text("❗ Please send a valid number with country code (e.g., +918888888888)")
         return
 
-    # API Call
+    # Make API request
     headers = {"apikey": API_KEY}
-    response = requests.get(API_URL + number, headers=headers)
+    try:
+        response = requests.get(API_URL + number, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
 
-    if response.status_code == 200:
-        data = response.json()
+            if not data.get("valid"):
+                await update.message.reply_text("❌ This number appears to be *invalid*.", parse_mode="Markdown")
+                return
 
-        if not data.get("valid"):
-            await update.message.reply_text("❌ This number appears to be *invalid*.", parse_mode="Markdown")
-            return
+            # Format reply
+            reply = (
+                f"🔍 *Phone Number Details:*\n"
+                f"• Number: `{data.get('international_format')}`\n"
+                f"• Valid: ✅\n"
+                f"• Country: {data.get('country_name')} ({data.get('country_code')})\n"
+                f"• Location: {data.get('location')}\n"
+                f"• Carrier: {data.get('carrier')}\n"
+                f"• Line Type: {data.get('line_type')}"
+            )
 
-        # Response formatting
-        reply = (
-            f"🔍 *Phone Number Details*\n"
-            f"• Number: `{data.get('international_format')}`\n"
-            f"• Country: {data.get('country_name')} ({data.get('country_code')})\n"
-            f"• Location: {data.get('location')}\n"
-            f"• Carrier: {data.get('carrier')}\n"
-            f"• Line Type: {data.get('line_type')}\n"
-        )
+            # Button to Google the number
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔎 Search on Google", url=f"https://www.google.com/search?q={number}")]
+            ])
 
-        # Optional button to search number in Google
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔎 Search Google", url=f"https://www.google.com/search?q={number}")]
-        ])
+            await update.message.reply_text(reply, parse_mode="Markdown", reply_markup=keyboard)
 
-        await update.message.reply_text(reply, parse_mode="Markdown", reply_markup=keyboard)
-    else:
-        logger.error(f"API Error: {response.text}")
-        await update.message.reply_text("⚠️ API error. Please try again later.")
+        else:
+            await update.message.reply_text("⚠️ API error. Please try again later.")
+            logger.error(f"API Error: {response.status_code} - {response.text}")
 
+    except Exception as e:
+        logger.error(f"Exception: {e}")
+        await update.message.reply_text("❌ An error occurred. Please try again later.")
+
+# Main function
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -80,8 +89,8 @@ def main():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, check_number))
 
-    logger.info("Bot is running...")
+    logger.info("🤖 Bot is running...")
     app.run_polling()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
