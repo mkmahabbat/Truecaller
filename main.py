@@ -4,7 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
 # ✅ Your Bot Token and API Key
-BOT_TOKEN = '7685067743:AAGWyNvmkWffyxQqGILIWRFgkPIwYAdnPEA'
+BOT_TOKEN = '7698780901:AAHpsBzm9px4w4X6Ck4tlPuxJr9QfVuWS-A'
 API_KEY = 'UVBOUb1397d66a0504dc280b01158ea9fc524'
 API_URL = 'https://api.apilayer.com/number_verification/validate?number='
 
